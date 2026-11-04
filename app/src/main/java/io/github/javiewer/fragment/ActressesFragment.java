@@ -9,9 +9,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-import io.github.javiewer.JAViewer;
 import io.github.javiewer.adapter.ActressAdapter;
 import io.github.javiewer.adapter.item.Actress;
+import io.github.javiewer.network.SiteApi;
 import io.github.javiewer.network.provider.AVMOProvider;
 import io.github.javiewer.view.decoration.ActressItemDecoration;
 import io.github.javiewer.view.listener.EndlessOnScrollListener;
@@ -93,6 +93,6 @@ public class ActressesFragment extends RecyclerFragment<Actress, LinearLayoutMan
     }
 
     public Call<ResponseBody> newCall(int page) {
-        return JAViewer.SERVICE.getActresses(page);
+        return SiteApi.actresses(page);
     }
 }

@@ -1,9 +1,9 @@
 apply plugin: 'com.android.application'
-apply plugin: 'io.fabric'
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion '28.0.3'
+    namespace 'io.github.javiewer'
+    compileSdkVersion 33
+    buildToolsVersion '33.0.2'
 
     defaultConfig {
         applicationId "io.github.javiewer"
@@ -11,31 +11,46 @@ android {
         targetSdkVersion 28
         versionCode 12
         versionName "2.0.0-alpha 1"
-
+        ndk {
+            abiFilters "arm64-v8a"
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        debug {
+            minifyEnabled false
+        }
     }
     compileOptions {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    lintOptions {
+        abortOnError false
+        checkReleaseBuilds false
     }
 }
 
-allprojects {
-    repositories {
-        maven { url "https://jitpack.io" }
-        maven { url 'https://maven.fabric.io/public' }
-    }
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    options.forkOptions.jvmArgs += [
+            '--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED'
+    ]
 }
 
 dependencies {
-    //compile fileTree(include: ['*.jar'], dir: 'libs')
-
-    //Support
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'com.google.android.material:material:1.0.0'
@@ -43,15 +58,13 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.percentlayout:percentlayout:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.0-alpha2'
-    //View
     implementation "com.mikepenz:materialdrawer:6.1.1"
     implementation 'com.aurelhubert:ahbottomnavigation:2.2.0'
     implementation 'com.wefika:flowlayout:0.4.1'
-    implementation 'com.robertlevonyan.view:MaterialChipView:1.0.1'
-    implementation 'com.miguelcatalan:materialsearchview:1.4.0'
+    implementation files('libs/MaterialChipView-1.0.1.aar')
+    implementation files('libs/materialsearchview-1.4.0.aar')
     implementation 'de.hdodenhof:circleimageview:2.2.0'
     implementation 'com.flaviofaria:kenburnsview:1.0.7'
-    //Utility
     implementation 'cat.ereza:customactivityoncrash:2.2.0'
     implementation 'com.github.bumptech.glide:glide:3.7.0'
     implementation 'com.google.code.gson:gson:2.8.5'
@@ -59,19 +72,15 @@ dependencies {
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'com.karumi:dexter:5.0.0'
-    implementation 'jp.wasabeef:recyclerview-animators:2.2.6'
-
-    //Player
+    implementation files('libs/recyclerview-animators-2.2.6.aar')
     implementation 'cn.jzvd:jiaozivideoplayer:6.2.12'
-    implementation 'com.google.android.exoplayer:exoplayer:2.8.2'
-    //Firebase
-    implementation 'com.google.firebase:firebase-auth:18.1.0'
-
+    implementation files('libs/exoplayer-2.8.2.aar')
+    implementation files('libs/exoplayer-core-2.8.2.aar')
+    implementation files('libs/exoplayer-dash-2.8.2.aar')
+    implementation files('libs/exoplayer-hls-2.8.2.aar')
+    implementation files('libs/exoplayer-smoothstreaming-2.8.2.aar')
+    implementation files('libs/exoplayer-ui-2.8.2.aar')
     testImplementation 'junit:junit:4.12'
     implementation 'com.jakewharton:butterknife:10.1.0'
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.1.0'
-
-    implementation('com.crashlytics.sdk.android:crashlytics:2.9.4@aar') {
-        transitive = true;
-    }
 }

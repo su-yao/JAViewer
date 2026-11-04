@@ -52,6 +52,7 @@ import io.github.javiewer.adapter.item.Genre;
 import io.github.javiewer.adapter.item.Movie;
 import io.github.javiewer.adapter.item.MovieDetail;
 import io.github.javiewer.network.PSVS;
+import io.github.javiewer.network.SiteApi;
 import io.github.javiewer.network.item.AvgleSearchResult;
 import io.github.javiewer.network.provider.AVMOProvider;
 import io.github.javiewer.util.SimpleVideoPlayer;
@@ -117,12 +118,13 @@ public class MovieActivity extends SecureActivity {
         });
         mFab.bringToFront();
 
-        Call<ResponseBody> call = JAViewer.SERVICE.get(this.movie.getLink());
+        Call<ResponseBody> call = SiteApi.movieDetail(this.movie.getLink());
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                if (!response.isSuccessful()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    onFailure(call, new IOException("HTTP " + response.code()));
                     return;
                 }
 
@@ -143,6 +145,8 @@ public class MovieActivity extends SecureActivity {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
+                mProgressBar.setVisibility(View.GONE);
+                Toast.makeText(MovieActivity.this, "影片详情加载失败", Toast.LENGTH_SHORT).show();
             }
         });
     }

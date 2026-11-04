@@ -21,8 +21,6 @@ import com.mikepenz.materialdrawer.model.PrimaryDrawerItem;
 import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.mikepenz.materialize.util.UIUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +43,6 @@ import io.github.javiewer.fragment.HomeFragment;
 import io.github.javiewer.fragment.PopularFragment;
 import io.github.javiewer.fragment.ReleasedFragment;
 import io.github.javiewer.fragment.genre.GenreTabsFragment;
-import io.github.javiewer.network.BasicService;
 import io.github.javiewer.view.SimpleSearchView;
 
 public class MainActivity extends SecureActivity {
@@ -273,11 +270,7 @@ public class MainActivity extends SecureActivity {
         mSearchView.setOnQueryTextListener(new SimpleSearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                try {
-                    startActivity(MovieListActivity.newIntent(MainActivity.this, query + " 的搜索结果", JAViewer.getDataSource().getLink() + BasicService.LANGUAGE_NODE + "/search/" + URLEncoder.encode(query, "UTF-8")));
-                } catch (UnsupportedEncodingException e) {
-                    return false;
-                }
+                startActivity(MovieListActivity.newIntent(MainActivity.this, query + " 的搜索结果", "search:" + query));
                 return true;
             }
 

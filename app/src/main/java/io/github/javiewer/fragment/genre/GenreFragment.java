@@ -15,15 +15,12 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.github.javiewer.JAViewer;
 import io.github.javiewer.R;
 import io.github.javiewer.adapter.GenreAdapter;
 import io.github.javiewer.adapter.item.Genre;
 import io.github.javiewer.view.ViewUtil;
 import io.github.javiewer.view.decoration.GridSpacingItemDecoration;
 import jp.wasabeef.recyclerview.animators.SlideInUpAnimator;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
 
 public class GenreFragment extends Fragment {
 
@@ -58,10 +55,6 @@ public class GenreFragment extends Fragment {
         mRecyclerView.setItemAnimator(animator);
 
         this.mAdapter.notifyItemRangeInserted(0, this.mAdapter.getItemCount());
-    }
-
-    public Call<ResponseBody> getCall(int page) {
-        return JAViewer.SERVICE.getActresses(page);
     }
 
     public List<Genre> getGenres() {

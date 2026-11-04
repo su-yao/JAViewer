@@ -1,5 +1,7 @@
 package io.github.javiewer.adapter.item;
 
+import static io.github.javiewer.JAViewer.Objects_equals;
+
 /**
  * Project: JAViewer
  */
@@ -60,7 +62,7 @@ public class Movie extends Linkable {
         }
 
         if (obj instanceof Movie) {
-            return this.code.equals(((Movie) obj).code);
+            return Objects_equals(this.code, ((Movie) obj).code);
         }
 
         return false;

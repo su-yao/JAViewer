@@ -62,7 +62,11 @@ public class Configurations {
 
     public DataSource getDataSource() {
         if (data_source == null) {
-            data_source = JAViewer.DATA_SOURCES.get(0);
+            if (JAViewer.DATA_SOURCES != null && !JAViewer.DATA_SOURCES.isEmpty()) {
+                data_source = JAViewer.DATA_SOURCES.get(0);
+            } else {
+                data_source = DataSource.AVMO;
+            }
         }
         return data_source;
     }

@@ -15,11 +15,11 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.github.javiewer.JAViewer;
 import io.github.javiewer.R;
 import io.github.javiewer.adapter.ViewPagerAdapter;
 import io.github.javiewer.adapter.item.Genre;
 import io.github.javiewer.fragment.ExtendedAppBarFragment;
+import io.github.javiewer.network.SiteApi;
 import io.github.javiewer.network.provider.AVMOProvider;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -51,7 +51,7 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
         mViewPager.setAdapter(mAdapter);
         mTabLayout.setupWithViewPager(mViewPager);
 
-        Call<ResponseBody> call = JAViewer.SERVICE.getGenre();
+        Call<ResponseBody> call = SiteApi.genres();
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {

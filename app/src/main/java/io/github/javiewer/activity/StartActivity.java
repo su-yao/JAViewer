@@ -7,8 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import com.karumi.dexter.Dexter;
@@ -32,10 +30,6 @@ import io.github.javiewer.Properties;
 import io.github.javiewer.R;
 import io.github.javiewer.adapter.item.DataSource;
 import io.github.javiewer.util.IOUtils;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class StartActivity extends AppCompatActivity {
 
@@ -48,52 +42,58 @@ public class StartActivity extends AppCompatActivity {
     }
 
     public void readProperties() {
-        Request request = new Request.Builder()
-                // todo: 正式版改成官方仓库的地址
-                .url("https://raw.githubusercontent.com/ipcjs/JAViewer/master/app/src/main/assets/properties.json?t=" + System.currentTimeMillis() / 1000)
-                .build();
-        JAViewer.HTTP_CLIENT.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.w("StartActivity", "onFailure: " + e);
-                try (InputStream is = getAssets().open("properties.json")) {
-                    Properties properties = JAViewer.parseJson(Properties.class, IOUtils.readText(is, IOUtils.UTF_8));
-                    if (properties != null) {
-                        runOnUiThread(() -> handleProperties(properties));
-                    }
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
+        try (InputStream is = getAssets().open("properties.json")) {
+            Properties properties = JAViewer.parseJson(Properties.class, IOUtils.readText(is, IOUtils.UTF_8));
+            if (properties != null) {
+                handleProperties(properties);
             }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                final Properties properties = JAViewer.parseJson(Properties.class, response.body().string());
-                if (properties != null) {
-                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            handleProperties(properties);
-                        }
-                    });
-                }
-            }
-        });
+        } catch (IOException e) {
+            Log.w("StartActivity", "readProperties: " + e);
+        }
     }
 
     public void handleProperties(Properties properties) {
         JAViewer.DATA_SOURCES.clear();
-        JAViewer.DATA_SOURCES.addAll(properties.getDataSources());
+        if (properties.getDataSources() != null) {
+            JAViewer.DATA_SOURCES.addAll(properties.getDataSources());
+        }
 
         JAViewer.hostReplacements.clear();
         for (DataSource source : JAViewer.DATA_SOURCES) {
             try {
                 String host = new URI(source.getLink()).getHost();
-                for (String h : source.legacies) {
-                    JAViewer.hostReplacements.put(h, host);
+                if (source.legacies != null) {
+                    for (String h : source.legacies) {
+                        JAViewer.hostReplacements.put(h, host);
+                    }
                 }
             } catch (URISyntaxException e) {
                 e.printStackTrace();
+            }
+        }
+
+        DataSource saved = JAViewer.CONFIGURATIONS.getDataSource();
+        if (saved != null && saved.getLink() != null) {
+            String savedHost = null;
+            try {
+                savedHost = new URI(saved.getLink()).getHost();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            for (DataSource source : JAViewer.DATA_SOURCES) {
+                boolean sameName = source.getName() != null && source.getName().equals(saved.getName());
+                boolean sameHost = false;
+                boolean legacyHost = source.legacies != null && savedHost != null && source.legacies.contains(savedHost);
+                try {
+                    sameHost = savedHost != null && savedHost.equals(new URI(source.getLink()).getHost());
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+                if (sameName || sameHost || legacyHost) {
+                    JAViewer.CONFIGURATIONS.setDataSource(source);
+                    JAViewer.CONFIGURATIONS.save();
+                    break;
+                }
             }
         }
 

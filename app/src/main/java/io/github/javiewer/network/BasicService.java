@@ -1,9 +1,12 @@
 package io.github.javiewer.network;
 
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
-import retrofit2.http.Path;
+import retrofit2.http.Headers;
+import retrofit2.http.POST;
 import retrofit2.http.Url;
 
 /**
@@ -12,21 +15,33 @@ import retrofit2.http.Url;
 public interface BasicService {
 
     String LANGUAGE_NODE = "/cn";
+    String LANG = "cn";
+    int PAGE_SIZE = 60;
+    int STAR_PAGE_SIZE = 50;
 
-    @GET(BasicService.LANGUAGE_NODE + "/page/{page}")
-    Call<ResponseBody> getHomePage(@Path("page") int page);
+    @Headers("Content-Type: application/json")
+    @POST("getMovies")
+    Call<ResponseBody> getMovies(@Body RequestBody body);
 
-    @GET(BasicService.LANGUAGE_NODE + "/released/page/{page}")
-    Call<ResponseBody> getReleased(@Path("page") int page);
+    @Headers("Content-Type: application/json")
+    @POST("getFilterMovies")
+    Call<ResponseBody> getFilterMovies(@Body RequestBody body);
 
-    @GET(BasicService.LANGUAGE_NODE + "/popular/page/{page}")
-    Call<ResponseBody> getPopular(@Path("page") int page);
+    @Headers("Content-Type: application/json")
+    @POST("getStars")
+    Call<ResponseBody> getStars(@Body RequestBody body);
 
-    @GET(BasicService.LANGUAGE_NODE + "/actresses/page/{page}")
-    Call<ResponseBody> getActresses(@Path("page") int page);
+    @Headers("Content-Type: application/json")
+    @POST("getGenres")
+    Call<ResponseBody> getGenres(@Body RequestBody body);
 
-    @GET(BasicService.LANGUAGE_NODE + "/genre")
-    Call<ResponseBody> getGenre();
+    @Headers("Content-Type: application/json")
+    @POST("getMovie")
+    Call<ResponseBody> getMovie(@Body RequestBody body);
+
+    @Headers("Content-Type: application/json")
+    @POST("search")
+    Call<ResponseBody> search(@Body RequestBody body);
 
     @GET
     Call<ResponseBody> get(@Url String url);

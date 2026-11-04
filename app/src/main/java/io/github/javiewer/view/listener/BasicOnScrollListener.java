@@ -33,6 +33,7 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
         loading = false;
         loadThreshold = 5;
         currentPage = 0;
+        end = false;
         int oldSize = getItems().size();
         if (oldSize > 0) {
             getItems().clear();
@@ -112,7 +113,7 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
     public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
         super.onScrolled(recyclerView, dx, dy);
 
-        if (!isLoading() && canLoadMore(recyclerView)) {
+        if (!isLoading() && !isEnd() && canLoadMore(recyclerView)) {
             onLoad(token = System.currentTimeMillis());
             loading = true;
         }

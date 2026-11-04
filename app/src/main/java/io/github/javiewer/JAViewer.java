@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.Environment;
 import androidx.fragment.app.Fragment;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import cn.jzvd.JZVideoPlayer;
-import io.fabric.sdk.android.Fabric;
 import io.github.javiewer.adapter.item.DataSource;
 import io.github.javiewer.fragment.ActressesFragment;
 import io.github.javiewer.fragment.HomeFragment;
@@ -66,10 +64,19 @@ public class JAViewer extends Application {
         public Response intercept(Interceptor.Chain chain) throws IOException {
             Request original = chain.request();
 
-            Request request = original.newBuilder()
-                    .url(replaceUrl(original.url()))
-                    .header("User-Agent", USER_AGENT)
-                    .build();
+            HttpUrl url = replaceUrl(original.url());
+            Request.Builder builder = original.newBuilder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT);
+            String host = url.host();
+            if (host.contains("avmoo") || host.contains("avsox") || host.contains("avheat")) {
+                String origin = url.scheme() + "://" + host;
+                builder.header("X-Requested-With", "XMLHttpRequest")
+                        .header("Accept", "application/json, text/plain, */*")
+                        .header("Origin", origin)
+                        .header("Referer", origin + "/cn");
+            }
+            Request request = builder.build();
 
             return chain.proceed(request);
         }
@@ -171,6 +178,5 @@ public class JAViewer extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Fabric.with(this, new Crashlytics());
     }
 }
