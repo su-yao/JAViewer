@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.List;
 
 import butterknife.BindView;
@@ -73,18 +74,26 @@ public class DownloadLinkAdapter extends ItemAdapter<DownloadLink, DownloadLinkA
                         @Override
                         public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                             try {
+                                if (response.body() == null) {
+                                    onFailure(call, new IOException("empty magnet response"));
+                                    return;
+                                }
                                 MagnetLink magnetLink = provider.parseMagnetLink(response.body().string());
                                 onMagnetGet(magnetLink.getMagnetLink());
                             } catch (Throwable e) {
                                 onFailure(call, e);
+                            } finally {
+                                mDialog.dismiss();
                             }
-
-                            mDialog.dismiss();
                         }
 
                         @Override
                         public void onFailure(Call<ResponseBody> call, Throwable t) {
                             t.printStackTrace();
+                            if (mDialog.isShowing()) {
+                                mDialog.dismiss();
+                            }
+                            Toast.makeText(mParentActivity, "磁力链接获取失败", Toast.LENGTH_SHORT).show();
                         }
                     });
                 } else {

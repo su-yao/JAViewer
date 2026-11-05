@@ -74,8 +74,12 @@ public class ActressesFragment extends RecyclerFragment<Actress, LinearLayoutMan
                 super.onResult(response);
                 List<Actress> wrappers = AVMOProvider.parseActresses(response.string());
 
-                int pos = getItems().size();
+                if (wrappers.isEmpty()) {
+                    setEnd(true);
+                    return;
+                }
 
+                int pos = getItems().size();
                 getItems().addAll(wrappers);
                 getAdapter().notifyItemRangeInserted(pos, wrappers.size());
             }

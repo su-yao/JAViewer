@@ -73,7 +73,7 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
 
         if (call == null) {
             setLoading(false);
-            getRefreshLayout().setRefreshing(false);
+            stopRefreshing();
             return;
         }
         call.enqueue(new Callback<ResponseBody>() {
@@ -81,21 +81,26 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (token == BasicOnScrollListener.this.token && page == currentPage) {
                     try {
-                        onResult(response.body());
-                        currentPage++;
+                        if (!response.isSuccessful() || response.body() == null) {
+                            setEnd(true);
+                        } else {
+                            onResult(response.body());
+                            currentPage++;
+                        }
                     } catch (Throwable e) {
                         onFailure(call, e);
+                        return;
                     }
                 }
 
                 setLoading(false);
-                getRefreshLayout().setRefreshing(false);
+                stopRefreshing();
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 setLoading(false);
-                getRefreshLayout().setRefreshing(false);
+                stopRefreshing();
                 onExceptionCaught(t);
             }
         });
@@ -149,5 +154,12 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
 
     public void setEnd(boolean end) {
         this.end = end;
+    }
+
+    private void stopRefreshing() {
+        SwipeRefreshLayout layout = getRefreshLayout();
+        if (layout != null) {
+            layout.setRefreshing(false);
+        }
     }
 }

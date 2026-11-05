@@ -72,8 +72,12 @@ public abstract class MovieFragment extends RecyclerFragment<Movie, LinearLayout
                 super.onResult(response);
                 List<Movie> wrappers = AVMOProvider.parseMovies(response.string());
 
-                int pos = getItems().size();
+                if (wrappers.isEmpty()) {
+                    setEnd(true);
+                    return;
+                }
 
+                int pos = getItems().size();
                 getItems().addAll(wrappers);
                 getAdapter().notifyItemRangeInserted(pos, wrappers.size());
             }

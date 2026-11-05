@@ -134,10 +134,12 @@ public class MovieActivity extends SecureActivity {
                     detail.headers.add(0, MovieDetail.Header.create("影片名", movie.getTitle(), null));
                     displayInfo(detail);
 
-                    Glide.with(mToolbarLayoutBackground.getContext().getApplicationContext())
-                            .load(detail.coverUrl)
-                            .into(mToolbarLayoutBackground);
-                } catch (IOException e) {
+                    if (detail.coverUrl != null && !detail.coverUrl.isEmpty()) {
+                        Glide.with(mToolbarLayoutBackground.getContext().getApplicationContext())
+                                .load(detail.coverUrl)
+                                .into(mToolbarLayoutBackground);
+                    }
+                } catch (Exception e) {
                     onFailure(call, e);
                 }
             }

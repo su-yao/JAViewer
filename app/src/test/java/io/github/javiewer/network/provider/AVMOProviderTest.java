@@ -87,4 +87,35 @@ public class AVMOProviderTest {
         assertEquals("性感的", map.get("主题").get(0).getName());
         assertEquals("genre:xlkbvbk", map.get("主题").get(0).getLink());
     }
+
+    @Test
+    public void parseMoviesEmptyAndError() {
+        assertTrue(AVMOProvider.parseMovies(null).isEmpty());
+        assertTrue(AVMOProvider.parseMovies("").isEmpty());
+        assertTrue(AVMOProvider.parseMovies("{\"code\":400}").isEmpty());
+        assertTrue(AVMOProvider.parseMovies("{\"code\":200,\"data\":[]}").isEmpty());
+        assertTrue(AVMOProvider.parseMovies("{not-json").isEmpty());
+        assertTrue(AVMOProvider.parseMovies("<html><body></body></html>").isEmpty());
+    }
+
+    @Test
+    public void parseActressesEmpty() {
+        assertTrue(AVMOProvider.parseActresses(null).isEmpty());
+        assertTrue(AVMOProvider.parseActresses("{\"code\":200,\"data\":null}").isEmpty());
+    }
+
+    @Test
+    public void parseMovieDetailEmpty() {
+        MovieDetail detail = AVMOProvider.parseMoviesDetail(null);
+        assertTrue(detail.headers.isEmpty());
+        assertTrue(detail.actresses.isEmpty());
+        detail = AVMOProvider.parseMoviesDetail("{\"code\":404}");
+        assertTrue(detail.headers.isEmpty());
+    }
+
+    @Test
+    public void parseGenresEmpty() {
+        assertTrue(AVMOProvider.parseGenres(null).isEmpty());
+        assertTrue(AVMOProvider.parseGenres("{\"code\":200,\"data\":{}}").isEmpty());
+    }
 }

@@ -1,13 +1,11 @@
 package io.github.javiewer.adapter;
 
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Paint;
-import android.net.Uri;
 import android.os.Bundle;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -64,9 +62,6 @@ public class MovieHeaderAdapter extends RecyclerView.Adapter<MovieHeaderAdapter.
                 @Override
                 public boolean onLongClick(View v) {
                     copyHeader(header);
-                    if (isMovieCodeHeader(header.name)) {
-                        openBtdigSearch(header.value);
-                    }
                     return true;
                 }
             });
@@ -108,30 +103,6 @@ public class MovieHeaderAdapter extends RecyclerView.Adapter<MovieHeaderAdapter.
             clip.setPrimaryClip(ClipData.newPlainText(header.name, header.value));
         }
         Toast.makeText(mParentActivity, "已复制到剪贴板", Toast.LENGTH_SHORT).show();
-    }
-
-    private boolean isMovieCodeHeader(String name) {
-        if (name == null) {
-            return false;
-        }
-        String trimmed = name.trim();
-        return "识别码".equals(trimmed) || "識別碼".equals(trimmed);
-    }
-
-    private void openBtdigSearch(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return;
-        }
-        Uri uri = Uri.parse("https://btdig.com/search").buildUpon()
-                .appendQueryParameter("q", keyword.trim())
-                .build();
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-        intent.addCategory(Intent.CATEGORY_BROWSABLE);
-        try {
-            mParentActivity.startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-            Toast.makeText(mParentActivity, "未找到可用浏览器", Toast.LENGTH_SHORT).show();
-        }
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {

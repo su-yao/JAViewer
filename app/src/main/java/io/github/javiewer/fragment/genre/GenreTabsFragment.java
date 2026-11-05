@@ -57,6 +57,10 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 mProgressBar.setVisibility(View.GONE);
                 try {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        onFailure(call, new Exception("HTTP " + response.code()));
+                        return;
+                    }
                     LinkedHashMap<String, List<Genre>> genres = AVMOProvider.parseGenres(response.body().string());
 
                     GenreFragment fragment;
@@ -77,6 +81,9 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
+                if (mProgressBar != null) {
+                    mProgressBar.setVisibility(View.GONE);
+                }
             }
         });
     }

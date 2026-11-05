@@ -45,10 +45,20 @@ public class StartActivity extends AppCompatActivity {
         try (InputStream is = getAssets().open("properties.json")) {
             Properties properties = JAViewer.parseJson(Properties.class, IOUtils.readText(is, IOUtils.UTF_8));
             if (properties != null) {
-                handleProperties(properties);
+                try {
+                    handleProperties(properties);
+                    return;
+                } catch (Exception e) {
+                    Log.w("StartActivity", "handleProperties: " + e);
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.w("StartActivity", "readProperties: " + e);
+        }
+        try {
+            start();
+        } catch (Exception e) {
+            Log.w("StartActivity", "start: " + e);
         }
     }
 
@@ -60,6 +70,9 @@ public class StartActivity extends AppCompatActivity {
 
         JAViewer.hostReplacements.clear();
         for (DataSource source : JAViewer.DATA_SOURCES) {
+            if (source.getLink() == null) {
+                continue;
+            }
             try {
                 String host = new URI(source.getLink()).getHost();
                 if (source.legacies != null) {
@@ -73,6 +86,7 @@ public class StartActivity extends AppCompatActivity {
         }
 
         DataSource saved = JAViewer.CONFIGURATIONS.getDataSource();
+        boolean migrated = false;
         if (saved != null && saved.getLink() != null) {
             String savedHost = null;
             try {
@@ -92,19 +106,24 @@ public class StartActivity extends AppCompatActivity {
                 if (sameName || sameHost || legacyHost) {
                     JAViewer.CONFIGURATIONS.setDataSource(source);
                     JAViewer.CONFIGURATIONS.save();
+                    migrated = true;
                     break;
                 }
             }
         }
+        if (!migrated && !JAViewer.DATA_SOURCES.isEmpty()) {
+            JAViewer.CONFIGURATIONS.setDataSource(JAViewer.DATA_SOURCES.get(0));
+            JAViewer.CONFIGURATIONS.save();
+        }
 
-        int currentVersion;
+        int currentVersion = 0;
         try {
             currentVersion = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionCode;
         } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException("Hacked???");
+            Log.w("StartActivity", "handleProperties: " + e);
         }
 
-        if (properties.getLatestVersionCode() > 0 && currentVersion < properties.getLatestVersionCode()) {
+        if (properties.getLatestVersionCode() > 0 && currentVersion > 0 && currentVersion < properties.getLatestVersionCode()) {
 
             String message = "新版本：" + properties.getLatestVersion();
             if (properties.getChangelog() != null) {

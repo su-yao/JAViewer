@@ -41,6 +41,9 @@ public class AVMOProvider {
     }
 
     public static List<Movie> parseMovies(String html) {
+        if (isBlank(html)) {
+            return new ArrayList<>();
+        }
         if (isJson(html)) {
             return parseMoviesJson(html);
         }
@@ -51,6 +54,9 @@ public class AVMOProvider {
         for (Element box : document.select("a[class*=movie-box]")) {
             Element img = box.select("div.photo-frame > img").first();
             Element span = box.select("div.photo-info > span").first();
+            if (img == null || span == null) {
+                continue;
+            }
 
             boolean hot = span.getElementsByTag("i").size() > 0;
             Elements date = span.select("date");
@@ -58,8 +64,8 @@ public class AVMOProvider {
             movies.add(
                     Movie.create(
                             img.attr("title"),
-                            date.get(0).text(),
-                            date.get(1).text(),
+                            date.size() > 0 ? date.get(0).text() : "",
+                            date.size() > 1 ? date.get(1).text() : "",
                             img.attr("src"),
                             box.attr("href"),
                             hot
@@ -71,6 +77,9 @@ public class AVMOProvider {
     }
 
     public static List<Actress> parseActresses(String html) {
+        if (isBlank(html)) {
+            return new ArrayList<>();
+        }
         if (isJson(html)) {
             return parseActressesJson(html);
         }
@@ -81,6 +90,9 @@ public class AVMOProvider {
         for (Element box : document.select("a[class*=avatar-box]")) {
             Element img = box.select("div.photo-frame > img").first();
             Element span = box.select("div.photo-info > span").first();
+            if (img == null || span == null) {
+                continue;
+            }
 
             actresses.add(
                     Actress.create(
@@ -94,6 +106,9 @@ public class AVMOProvider {
     }
 
     public static MovieDetail parseMoviesDetail(String html) {
+        if (isBlank(html)) {
+            return new MovieDetail();
+        }
         if (isJson(html)) {
             return parseMovieDetailJson(html);
         }
@@ -102,15 +117,21 @@ public class AVMOProvider {
         MovieDetail movie = new MovieDetail();
 
         {
-            movie.title = document.select("div.container > h3").first().text();
-            movie.coverUrl = document.select("[class=bigImage]").first().attr("href");
+            Element title = document.select("div.container > h3").first();
+            Element cover = document.select("[class=bigImage]").first();
+            movie.title = title != null ? title.text() : "";
+            movie.coverUrl = cover != null ? cover.attr("href") : "";
         }
 
         {
             for (Element box : document.select("[class*=sample-box]")) {
+                Element img = box.getElementsByTag("img").first();
+                if (img == null) {
+                    continue;
+                }
                 movie.screenshots.add(
                         Screenshot.create(
-                                box.getElementsByTag("img").first().attr("src"),
+                                img.attr("src"),
                                 box.attr("href")
                         )
                 );
@@ -119,10 +140,11 @@ public class AVMOProvider {
 
         {
             for (Element box : document.select("[class*=avatar-box]")) {
+                Element img = box.getElementsByTag("img").first();
                 movie.actresses.add(
                         Actress.create(
                                 box.text(),
-                                box.getElementsByTag("img").first().attr("src"),
+                                img != null ? img.attr("src") : "",
                                 box.attr("href")
                         )
                 );
@@ -178,6 +200,9 @@ public class AVMOProvider {
     }
 
     public static LinkedHashMap<String, List<Genre>> parseGenres(String html) {
+        if (isBlank(html)) {
+            return new LinkedHashMap<>();
+        }
         if (isJson(html)) {
             return parseGenresJson(html);
         }
@@ -185,6 +210,9 @@ public class AVMOProvider {
         LinkedHashMap<String, List<Genre>> map = new LinkedHashMap<>();
 
         Element container = Jsoup.parse(html).getElementsByClass("pt-10").first();
+        if (container == null) {
+            return map;
+        }
         List<String> keys = new ArrayList<>();
         for (Element e : container.getElementsByTag("h4")) {
             keys.add(e.text());
@@ -199,11 +227,15 @@ public class AVMOProvider {
             genres.add(list);
         }
 
-        for (int i = 0; i < keys.size(); i++) {
+        for (int i = 0; i < Math.min(keys.size(), genres.size()); i++) {
             map.put(keys.get(i), genres.get(i));
         }
 
         return map;
+    }
+
+    private static boolean isBlank(String body) {
+        return body == null || body.trim().isEmpty();
     }
 
     private static boolean isJson(String body) {
@@ -215,7 +247,11 @@ public class AVMOProvider {
     }
 
     private static JsonElement parseJson(String body) {
-        return new JsonParser().parse(body.trim());
+        try {
+            return new JsonParser().parse(body.trim());
+        } catch (Exception e) {
+            return new JsonObject();
+        }
     }
 
     private static JsonElement dataOf(String body) {
