@@ -22,14 +22,27 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1"
+            android:maxLines="3"
             android:text="这里是标题"
             android:textColor="?android:textColorPrimary"
             android:textSize="16sp" />
 
+        <TextView
+            android:id="@+id/download_magnet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:paddingTop="6dp"
+            android:text="磁力链接"
+            android:textColor="@color/colorAccent"
+            android:textIsSelectable="false"
+            android:textSize="12sp" />
+
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp">
 
             <TextView
                 android:id="@+id/download_date"
@@ -53,6 +66,14 @@
                 android:text="这里是大小"
                 android:textSize="14sp" />
         </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/download_files"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="8dp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <View

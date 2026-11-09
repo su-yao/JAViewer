@@ -8,9 +8,9 @@ import java.util.List;
 
 public class DataSource extends Linkable {
 
-    public static DataSource AVMO = new DataSource("AVMOO 日本", "https://avmoo.shop/jav/data/api/");
-    public static DataSource AVSO = new DataSource("AVMOO 日本无码", "https://avsox.click/javu/data/api/");
-    public static DataSource AVXO = new DataSource("AVMOO 欧美", "https://avheat.shop/wav/data/api/");
+    public static DataSource AVMO = new DataSource("AVMOO 日本", "http://avmoo.shop/jav/data/api/");
+    public static DataSource AVSO = new DataSource("AVMOO 日本无码", "http://avsox.click/javu/data/api/");
+    public static DataSource AVXO = new DataSource("AVMOO 欧美", "http://avheat.shop/wav/data/api/");
 
 
     public String name;

@@ -37,7 +37,9 @@ public abstract class MovieFragment extends RecyclerFragment<Movie, LinearLayout
         this.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getOnScrollListener().refresh();
+                if (getOnScrollListener() != null) {
+                    getOnScrollListener().refresh();
+                }
             }
         });
 
@@ -70,6 +72,9 @@ public abstract class MovieFragment extends RecyclerFragment<Movie, LinearLayout
             @Override
             public void onResult(ResponseBody response) throws Exception {
                 super.onResult(response);
+                if (!isAdded()) {
+                    return;
+                }
                 List<Movie> wrappers = AVMOProvider.parseMovies(response.string());
 
                 if (wrappers.isEmpty()) {
@@ -79,13 +84,19 @@ public abstract class MovieFragment extends RecyclerFragment<Movie, LinearLayout
 
                 int pos = getItems().size();
                 getItems().addAll(wrappers);
-                getAdapter().notifyItemRangeInserted(pos, wrappers.size());
+                RecyclerView.Adapter adapter = getAdapter();
+                if (adapter != null) {
+                    adapter.notifyItemRangeInserted(pos, wrappers.size());
+                }
             }
         });
 
         mRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
+                if (!isAdded() || mRefreshLayout == null || getOnRefreshListener() == null) {
+                    return;
+                }
                 mRefreshLayout.setRefreshing(true);
                 getOnRefreshListener().onRefresh();
             }

@@ -76,6 +76,9 @@ public class Configurations {
     }
 
     public void save() {
+        if (file == null) {
+            return;
+        }
         try {
             FileWriter writer = new FileWriter(file);
             new Gson().toJson(this, writer);

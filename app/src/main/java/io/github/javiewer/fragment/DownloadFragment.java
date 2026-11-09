@@ -2,10 +2,12 @@ package io.github.javiewer.fragment;
 
 
 import android.os.Bundle;
+import android.widget.Toast;
+
 import androidx.annotation.Nullable;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.util.List;
 
@@ -33,23 +35,25 @@ public class DownloadFragment extends RecyclerFragment<DownloadLink, LinearLayou
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bundle bundle = getArguments();
+        if (bundle == null) {
+            bundle = new Bundle();
+        }
         this.provider = DownloadLinkProvider.getProvider(bundle.getString("provider"));
         this.keyword = bundle.getString("keyword");
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        /*if (JAViewer.CONFIGURATIONS.showAds()) {
-            mAdView.setVisibility(View.VISIBLE);
-            AdRequest adRequest = new AdRequest.Builder()
-                    .addTestDevice("52546C5153814CA9A9714647F5960AFE")
-                    .build();
-            mAdView.loadAd(adRequest);
-        }*/
-
         this.setLayoutManager(new LinearLayoutManager(this.getContext()));
         this.setAdapter(new ScaleInAnimationAdapter(new DownloadLinkAdapter(this.getItems(), this.getActivity(), this.provider)));
         mRecyclerView.addItemDecoration(new DownloadItemDecoration());
+        mRecyclerView.setClipToPadding(false);
+        mRecyclerView.setPadding(
+                mRecyclerView.getPaddingLeft(),
+                mRecyclerView.getPaddingTop(),
+                mRecyclerView.getPaddingRight(),
+                io.github.javiewer.view.ViewUtil.dpToPx(88)
+        );
 
         RecyclerView.ItemAnimator animator = new SlideInUpAnimator();
         animator.setAddDuration(300);
@@ -58,7 +62,9 @@ public class DownloadFragment extends RecyclerFragment<DownloadLink, LinearLayou
         this.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getOnScrollListener().refresh();
+                if (getOnScrollListener() != null) {
+                    getOnScrollListener().refresh();
+                }
             }
         });
 
@@ -91,15 +97,36 @@ public class DownloadFragment extends RecyclerFragment<DownloadLink, LinearLayou
             @Override
             public void onResult(ResponseBody response) throws Exception {
                 super.onResult(response);
+                if (!isAdded()) {
+                    return;
+                }
+                if (provider == null) {
+                    setEnd(true);
+                    toastSearchFailed();
+                    return;
+                }
                 List<DownloadLink> downloads = provider.parseDownloadLinks(response.string());
 
                 int pos = getItems().size();
 
                 if (downloads.isEmpty()) {
                     setEnd(true);
+                    if (pos == 0) {
+                        toastSearchFailed();
+                    }
                 } else {
                     getItems().addAll(downloads);
-                    getAdapter().notifyItemRangeInserted(pos, downloads.size());
+                    RecyclerView.Adapter adapter = getAdapter();
+                    if (adapter != null) {
+                        adapter.notifyItemRangeInserted(pos, downloads.size());
+                    }
+                }
+            }
+
+            @Override
+            public void onExceptionCaught(Throwable t) {
+                if (isAdded() && getItems().isEmpty()) {
+                    toastSearchFailed();
                 }
             }
         });
@@ -107,6 +134,9 @@ public class DownloadFragment extends RecyclerFragment<DownloadLink, LinearLayou
         mRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
+                if (!isAdded() || mRefreshLayout == null || getOnRefreshListener() == null) {
+                    return;
+                }
                 mRefreshLayout.setRefreshing(true);
                 getOnRefreshListener().onRefresh();
             }
@@ -116,6 +146,16 @@ public class DownloadFragment extends RecyclerFragment<DownloadLink, LinearLayou
     }
 
     public Call<ResponseBody> newCall(int page) {
+        if (this.provider == null) {
+            return null;
+        }
         return this.provider.search(this.keyword, page);
+    }
+
+    private void toastSearchFailed() {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+        Toast.makeText(getActivity(), "搜索失败，可切换其他站点重试", Toast.LENGTH_SHORT).show();
     }
 }

@@ -3,6 +3,9 @@ package io.github.javiewer.activity;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.ProgressDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -55,6 +58,7 @@ import io.github.javiewer.network.PSVS;
 import io.github.javiewer.network.SiteApi;
 import io.github.javiewer.network.item.AvgleSearchResult;
 import io.github.javiewer.network.provider.AVMOProvider;
+import io.github.javiewer.util.Intents;
 import io.github.javiewer.util.SimpleVideoPlayer;
 import io.github.javiewer.view.ViewUtil;
 import okhttp3.ResponseBody;
@@ -89,6 +93,7 @@ public class MovieActivity extends SecureActivity {
     FlowLayout mFlowLayout;
 
     MenuItem mStarButton;
+    private ProgressDialog previewDialog;
 
     @Override
     @SuppressWarnings("ConstantConditions")
@@ -99,12 +104,31 @@ public class MovieActivity extends SecureActivity {
         ButterKnife.bind(this);
 
         Bundle bundle = this.getIntent().getExtras();
+        if (bundle == null) {
+            finish();
+            return;
+        }
         movie = (Movie) bundle.getSerializable("movie");
+        if (movie == null) {
+            finish();
+            return;
+        }
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle(movie.title);
+        View.OnLongClickListener copyTitle = new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                copyText("影片名", movie.getTitle());
+                return true;
+            }
+        };
+        toolbar.setOnLongClickListener(copyTitle);
+        mToolbarLayout.setOnLongClickListener(copyTitle);
+        mToolbarLayoutBackground.setOnLongClickListener(copyTitle);
+        mToolbarLayoutBackground.setLongClickable(true);
 
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,6 +146,9 @@ public class MovieActivity extends SecureActivity {
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (!Intents.isAlive(MovieActivity.this)) {
+                    return;
+                }
 
                 if (!response.isSuccessful() || response.body() == null) {
                     onFailure(call, new IOException("HTTP " + response.code()));
@@ -131,6 +158,9 @@ public class MovieActivity extends SecureActivity {
                 MovieDetail detail;
                 try {
                     detail = AVMOProvider.parseMoviesDetail(response.body().string());
+                    if (detail.headers == null) {
+                        detail.headers = new java.util.ArrayList<>();
+                    }
                     detail.headers.add(0, MovieDetail.Header.create("影片名", movie.getTitle(), null));
                     displayInfo(detail);
 
@@ -147,10 +177,24 @@ public class MovieActivity extends SecureActivity {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
+                if (!Intents.isAlive(MovieActivity.this)) {
+                    return;
+                }
                 mProgressBar.setVisibility(View.GONE);
                 Toast.makeText(MovieActivity.this, "影片详情加载失败", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void copyText(String label, String value) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        ClipboardManager clip = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clip != null) {
+            clip.setPrimaryClip(ClipData.newPlainText(label, value));
+        }
+        Toast.makeText(this, "已复制" + label, Toast.LENGTH_SHORT).show();
     }
 
     private void displayInfo(MovieDetail detail) {
@@ -365,88 +409,140 @@ public class MovieActivity extends SecureActivity {
 
     @OnClick(R.id.view_preview)
     public void onClickPreview() {
-        //TODO: Deprecated
         if (video != null) {
-            JZVideoPlayerStandard.startFullscreen(MovieActivity.this, SimpleVideoPlayer.class, video.preview_video_url, movie.title);
+            startPreview(video);
             return;
         }
 
-        final ProgressDialog dialog = ProgressDialog.show(this, "请稍后", "正在搜索该影片的预览视频", true, false);
-
-        Call<AvgleSearchResult> call = PSVS.INSTANCE.search(movie.code);
-        call.enqueue(new Callback<AvgleSearchResult>() {
+        searchPreview("正在搜索该影片的预览视频", new PreviewCallback() {
             @Override
-            public void onResponse(Call<AvgleSearchResult> call, Response<AvgleSearchResult> response) {
-                if (response.isSuccessful()) {
-                    AvgleSearchResult result = response.body();
-                    if (result.success && result.response.videos.size() > 0) {
-                        video = result.response.videos.get(0);
-                        JZVideoPlayerStandard.startFullscreen(MovieActivity.this, SimpleVideoPlayer.class, video.preview_video_url, movie.title);
-                        Toast.makeText(MovieActivity.this, "提示：预览视频可能需要科学上网", Toast.LENGTH_LONG).show();
-                        dialog.dismiss();
-                        return;
-                    }
-                }
-
-                Toast.makeText(MovieActivity.this, "该影片暂无预览", Toast.LENGTH_LONG).show();
-                dialog.dismiss();
+            public void onFound(AvgleSearchResult.Response.Video found) {
+                startPreview(found);
+                toastAlive("提示：预览视频可能需要科学上网", Toast.LENGTH_LONG);
             }
 
             @Override
-            public void onFailure(Call<AvgleSearchResult> call, Throwable t) {
-                t.printStackTrace();
-                Toast.makeText(MovieActivity.this, "获取预览失败，请重试，或使用科学上网", Toast.LENGTH_LONG).show();
-                dialog.dismiss();
+            public void onEmpty() {
+                toastAlive("该影片暂无预览", Toast.LENGTH_LONG);
+            }
+
+            @Override
+            public void onError() {
+                toastAlive("获取预览失败，请重试，或使用科学上网", Toast.LENGTH_LONG);
             }
         });
     }
 
     @OnClick(R.id.view_play)
     public void onPlay() {
-        //TODO: Deprecated
         final String ts = String.valueOf(System.currentTimeMillis() / 1000);
         if (video != null) {
-            JZVideoPlayerStandard.startFullscreen(
-                    MovieActivity.this,
-                    SimpleVideoPlayer.class,
-                    String.format("http://api.rekonquer.com/psvs/mp4.php?vid=%s&ts=%s&sign=%s", video.vid, ts, JAViewer.b(video.vid, ts)),
-                    movie.title
-            );
+            startPlay(video, ts);
             return;
         }
 
-        final ProgressDialog dialog = ProgressDialog.show(this, "请稍后", "正在搜索该影片的在线视频源", true, false);
+        searchPreview("正在搜索该影片的在线视频源", new PreviewCallback() {
+            @Override
+            public void onFound(AvgleSearchResult.Response.Video found) {
+                startPlay(found, ts);
+            }
 
-        Call<AvgleSearchResult> call = PSVS.INSTANCE.search(movie.code);
+            @Override
+            public void onEmpty() {
+                toastAlive("该影片暂无在线视频源", Toast.LENGTH_LONG);
+            }
+
+            @Override
+            public void onError() {
+                toastAlive("获取在线视频源失败，请重试，或使用科学上网", Toast.LENGTH_LONG);
+            }
+        });
+    }
+
+    private interface PreviewCallback {
+        void onFound(AvgleSearchResult.Response.Video found);
+
+        void onEmpty();
+
+        void onError();
+    }
+
+    private void searchPreview(String message, final PreviewCallback callback) {
+        if (!Intents.isAlive(this) || movie == null) {
+            return;
+        }
+        dismissPreviewDialog();
+        previewDialog = ProgressDialog.show(this, "请稍后", message, true, false);
+        String keyword = movie.getCode();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            dismissPreviewDialog();
+            callback.onEmpty();
+            return;
+        }
+        Call<AvgleSearchResult> call = PSVS.INSTANCE.search(keyword);
         call.enqueue(new Callback<AvgleSearchResult>() {
             @Override
             public void onResponse(Call<AvgleSearchResult> call, Response<AvgleSearchResult> response) {
-                if (response.isSuccessful()) {
-                    AvgleSearchResult result = response.body();
-                    if (result.success && result.response.videos.size() > 0) {
-                        video = result.response.videos.get(0);
-                        JZVideoPlayerStandard.startFullscreen(
-                                MovieActivity.this,
-                                SimpleVideoPlayer.class,
-                                String.format("http://api.rekonquer.com/psvs/mp4.php?vid=%s&ts=%s&sign=%s", video.vid, ts, JAViewer.b(video.vid, ts)),
-                                movie.title
-                        );
-                        dialog.dismiss();
-                        return;
-                    }
+                dismissPreviewDialog();
+                if (!Intents.isAlive(MovieActivity.this)) {
+                    return;
                 }
-
-                Toast.makeText(MovieActivity.this, "该影片暂无在线视频源", Toast.LENGTH_LONG).show();
-                dialog.dismiss();
+                AvgleSearchResult result = response.body();
+                AvgleSearchResult.Response.Video found = result == null ? null : result.firstVideo();
+                if (found != null) {
+                    video = found;
+                    callback.onFound(found);
+                    return;
+                }
+                callback.onEmpty();
             }
 
             @Override
             public void onFailure(Call<AvgleSearchResult> call, Throwable t) {
                 t.printStackTrace();
-                Toast.makeText(MovieActivity.this, "获取在线视频源失败，请重试，或使用科学上网", Toast.LENGTH_LONG).show();
-                dialog.dismiss();
+                dismissPreviewDialog();
+                if (!Intents.isAlive(MovieActivity.this)) {
+                    return;
+                }
+                callback.onError();
             }
         });
+    }
+
+    private void startPreview(AvgleSearchResult.Response.Video found) {
+        if (!Intents.isAlive(this) || found == null || found.preview_video_url == null || found.preview_video_url.isEmpty()) {
+            toastAlive("该影片暂无预览", Toast.LENGTH_LONG);
+            return;
+        }
+        JZVideoPlayerStandard.startFullscreen(this, SimpleVideoPlayer.class, found.preview_video_url, movie.title);
+    }
+
+    private void startPlay(AvgleSearchResult.Response.Video found, String ts) {
+        if (!Intents.isAlive(this) || found == null || found.vid == null || found.vid.isEmpty()) {
+            toastAlive("该影片暂无在线视频源", Toast.LENGTH_LONG);
+            return;
+        }
+        JZVideoPlayerStandard.startFullscreen(
+                this,
+                SimpleVideoPlayer.class,
+                String.format("http://api.rekonquer.com/psvs/mp4.php?vid=%s&ts=%s&sign=%s", found.vid, ts, JAViewer.b(found.vid, ts)),
+                movie.title
+        );
+    }
+
+    private void toastAlive(String message, int duration) {
+        if (Intents.isAlive(this)) {
+            Toast.makeText(this, message, duration).show();
+        }
+    }
+
+    private void dismissPreviewDialog() {
+        if (previewDialog != null) {
+            if (previewDialog.isShowing() && Intents.isAlive(this)) {
+                previewDialog.dismiss();
+            }
+            previewDialog = null;
+        }
     }
 
     /*@OnClick(R.id.view_play)
@@ -561,6 +657,7 @@ public class MovieActivity extends SecureActivity {
 
     @Override
     protected void onDestroy() {
+        dismissPreviewDialog();
         super.onDestroy();
         JZVideoPlayer.releaseAllVideos();
     }

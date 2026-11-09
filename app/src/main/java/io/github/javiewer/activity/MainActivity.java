@@ -2,7 +2,6 @@ package io.github.javiewer.activity;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -138,9 +137,7 @@ public class MainActivity extends SecureActivity {
 
                         switch ((int) drawerItem.getIdentifier()) {
                             case ID_GITHUB: {
-                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/SplashCodes/JAViewer/releases"));
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                startActivity(intent);
+                                io.github.javiewer.util.Intents.openUri(MainActivity.this, "https://github.com/su-yao/JAViewer");
                                 break;
                             }
                             case ID_FAV: {

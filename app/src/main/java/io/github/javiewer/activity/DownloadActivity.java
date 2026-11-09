@@ -1,20 +1,24 @@
 package io.github.javiewer.activity;
 
-import android.content.DialogInterface;
 import android.os.Bundle;
-import com.google.android.material.tabs.TabLayout;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
+
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.widget.Toolbar;
-import android.view.MenuItem;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.tabs.TabLayout;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.github.javiewer.JAViewer;
 import io.github.javiewer.R;
 import io.github.javiewer.adapter.ViewPagerAdapter;
 import io.github.javiewer.fragment.DownloadFragment;
+import io.github.javiewer.network.BtSearchSite;
+import io.github.javiewer.util.Intents;
 
 public class DownloadActivity extends SecureActivity {
 
@@ -27,6 +31,9 @@ public class DownloadActivity extends SecureActivity {
     @BindView(R.id.download_view_pager)
     public ViewPager mViewPager;
 
+    @BindView(R.id.download_fab_browser)
+    public FloatingActionButton mFabBrowser;
+
     public String keyword;
 
     @Override
@@ -38,63 +45,55 @@ public class DownloadActivity extends SecureActivity {
         ButterKnife.bind(this);
 
         Bundle bundle = this.getIntent().getExtras();
-        this.keyword = this.getIntent().getExtras().getString("keyword");
+        if (bundle == null) {
+            bundle = new Bundle();
+        }
+        this.keyword = bundle.getString("keyword");
+        if (this.keyword == null) {
+            this.keyword = "";
+        }
 
         setSupportActionBar(mToolbar);
         getSupportActionBar().setTitle(this.keyword);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager());
-        Fragment fragment;
-
-        fragment = new DownloadFragment();
-        bundle = (Bundle) bundle.clone();
-        bundle.putString("provider", "btso");
-        fragment.setArguments(bundle);
-        adapter.addFragment(fragment, "BTSO");
-
-        fragment = new DownloadFragment();
-        bundle = (Bundle) bundle.clone();
-        bundle.putString("provider", "torrentkitty");
-        fragment.setArguments(bundle);
-        adapter.addFragment(fragment, "Torrent Kitty");
+        for (BtSearchSite site : BtSearchSite.TABS) {
+            Fragment fragment = new DownloadFragment();
+            Bundle tabBundle = (Bundle) bundle.clone();
+            tabBundle.putString("provider", site.id);
+            fragment.setArguments(tabBundle);
+            adapter.addFragment(fragment, site.name);
+        }
 
         mViewPager.setAdapter(adapter);
+        mViewPager.setOffscreenPageLimit(1);
 
+        mTabLayout.setTabMode(TabLayout.MODE_SCROLLABLE);
         mTabLayout.setupWithViewPager(mViewPager);
 
-        long downloadCounter = JAViewer.CONFIGURATIONS.getDownloadCounter();
-        if (downloadCounter == -1) {
-            return;
-        }
-        downloadCounter++;
-        JAViewer.CONFIGURATIONS.setDownloadCounter(downloadCounter);
-        if (downloadCounter % 20 == 0) {
-            new AlertDialog.Builder(this)
-                    .setTitle("用得不错？")
-                    .setMessage("您的支持是我动力来源！\n请考虑为我买杯咖啡醒醒脑，甚至其他…… ;)")
-                    .setPositiveButton("为我买杯咖啡", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            JAViewer.a(DownloadActivity.this);
-                            new AlertDialog.Builder(DownloadActivity.this)
-                                    .setMessage("感谢您的支持！;)\n新功能持续开发中！")
-                                    .setPositiveButton("确认", null)
-                                    .show();
-                        }
-                    })
-                    .setNeutralButton("不再显示", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            JAViewer.CONFIGURATIONS.setDownloadCounter(-1);
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-        }
-        JAViewer.CONFIGURATIONS.save();
+        mFabBrowser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openCurrentSiteInBrowser();
+            }
+        });
     }
 
+    private void openCurrentSiteInBrowser() {
+        int index = mViewPager.getCurrentItem();
+        if (index < 0 || index >= BtSearchSite.TABS.size()) {
+            Toast.makeText(this, "当前站点不可用", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        BtSearchSite site = BtSearchSite.TABS.get(index);
+        String url = site.buildSearchUrl(keyword, 1);
+        if (url == null || url.trim().isEmpty()) {
+            Toast.makeText(this, "无法打开搜索站点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intents.openUri(this, url);
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

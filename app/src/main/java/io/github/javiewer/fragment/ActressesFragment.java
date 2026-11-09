@@ -39,7 +39,9 @@ public class ActressesFragment extends RecyclerFragment<Actress, LinearLayoutMan
         this.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getOnScrollListener().refresh();
+                if (getOnScrollListener() != null) {
+                    getOnScrollListener().refresh();
+                }
             }
         });
 
@@ -72,6 +74,9 @@ public class ActressesFragment extends RecyclerFragment<Actress, LinearLayoutMan
             @Override
             public void onResult(ResponseBody response) throws Exception {
                 super.onResult(response);
+                if (!isAdded()) {
+                    return;
+                }
                 List<Actress> wrappers = AVMOProvider.parseActresses(response.string());
 
                 if (wrappers.isEmpty()) {
@@ -81,13 +86,19 @@ public class ActressesFragment extends RecyclerFragment<Actress, LinearLayoutMan
 
                 int pos = getItems().size();
                 getItems().addAll(wrappers);
-                getAdapter().notifyItemRangeInserted(pos, wrappers.size());
+                RecyclerView.Adapter adapter = getAdapter();
+                if (adapter != null) {
+                    adapter.notifyItemRangeInserted(pos, wrappers.size());
+                }
             }
         });
 
         mRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
+                if (!isAdded() || mRefreshLayout == null || getOnRefreshListener() == null) {
+                    return;
+                }
                 mRefreshLayout.setRefreshing(true);
                 getOnRefreshListener().onRefresh();
             }

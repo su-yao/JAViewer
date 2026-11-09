@@ -141,8 +141,17 @@ public class GalleryActivity extends SecureActivity {
         }
 
         Bundle bundle = this.getIntent().getExtras();
+        if (bundle == null) {
+            finish();
+            return;
+        }
+        imageUrls = bundle.getStringArray("urls");
+        if (imageUrls == null || imageUrls.length == 0) {
+            finish();
+            return;
+        }
 
-        mPager.setAdapter(new ImageAdapter(this, imageUrls = bundle.getStringArray("urls"), this));
+        mPager.setAdapter(new ImageAdapter(this, imageUrls, this));
         mPager.setCurrentItem(bundle.getInt("position"));
         mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override

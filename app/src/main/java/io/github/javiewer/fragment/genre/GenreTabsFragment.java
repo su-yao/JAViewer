@@ -47,7 +47,7 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        mAdapter = new ViewPagerAdapter(getActivity().getSupportFragmentManager());
+        mAdapter = new ViewPagerAdapter(getChildFragmentManager());
         mViewPager.setAdapter(mAdapter);
         mTabLayout.setupWithViewPager(mViewPager);
 
@@ -55,13 +55,21 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                mProgressBar.setVisibility(View.GONE);
+                if (!isAdded()) {
+                    return;
+                }
+                if (mProgressBar != null) {
+                    mProgressBar.setVisibility(View.GONE);
+                }
                 try {
                     if (!response.isSuccessful() || response.body() == null) {
                         onFailure(call, new Exception("HTTP " + response.code()));
                         return;
                     }
                     LinkedHashMap<String, List<Genre>> genres = AVMOProvider.parseGenres(response.body().string());
+                    if (mAdapter == null) {
+                        return;
+                    }
 
                     GenreFragment fragment;
                     for (String title : genres.keySet()) {
@@ -72,7 +80,9 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
 
                     mAdapter.notifyDataSetChanged();
 
-                    mTabLayout.setVisibility(View.VISIBLE);
+                    if (mTabLayout != null) {
+                        mTabLayout.setVisibility(View.VISIBLE);
+                    }
                 } catch (Throwable e) {
                     onFailure(call, e);
                 }
@@ -81,6 +91,9 @@ public class GenreTabsFragment extends ExtendedAppBarFragment {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
+                if (!isAdded()) {
+                    return;
+                }
                 if (mProgressBar != null) {
                     mProgressBar.setVisibility(View.GONE);
                 }

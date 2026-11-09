@@ -76,13 +76,18 @@ public abstract class RecyclerFragment<I, LM extends RecyclerView.LayoutManager>
 
     public void setItems(ArrayList<I> items) {
         int size = getItems().size();
+        RecyclerView.Adapter adapter = getAdapter();
         if (size > 0) {
             getItems().clear();
-            getAdapter().notifyDataSetChanged();
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
         }
 
         getItems().addAll(items);
-        getAdapter().notifyDataSetChanged();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -106,9 +111,14 @@ public abstract class RecyclerFragment<I, LM extends RecyclerView.LayoutManager>
         );
 
         if (savedInstanceState != null) {
-            this.getLayoutManager().onRestoreInstanceState(savedInstanceState.getParcelable("LayoutManagerState"));
-            this.setItems((ArrayList<I>) savedInstanceState.getSerializable("Items"));
-            if (this.getOnScrollListener() != null) {
+            if (this.getLayoutManager() != null) {
+                this.getLayoutManager().onRestoreInstanceState(savedInstanceState.getParcelable("LayoutManagerState"));
+            }
+            ArrayList<I> restored = (ArrayList<I>) savedInstanceState.getSerializable("Items");
+            if (restored != null) {
+                this.setItems(restored);
+            }
+            if (this.getOnScrollListener() != null && savedInstanceState.getBundle("ScrollListenerState") != null) {
                 this.getOnScrollListener().restoreState(savedInstanceState.getBundle("ScrollListenerState"));
             }
         }
@@ -133,7 +143,9 @@ public abstract class RecyclerFragment<I, LM extends RecyclerView.LayoutManager>
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putSerializable("Items", this.getItems());
-        outState.putParcelable("LayoutManagerState", getLayoutManager().onSaveInstanceState());
+        if (getLayoutManager() != null) {
+            outState.putParcelable("LayoutManagerState", getLayoutManager().onSaveInstanceState());
+        }
 
         if (this.getOnScrollListener() != null) {
             outState.putBundle("ScrollListenerState", getOnScrollListener().saveState());

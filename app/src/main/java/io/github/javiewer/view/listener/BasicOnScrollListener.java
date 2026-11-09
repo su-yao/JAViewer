@@ -37,7 +37,10 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
         int oldSize = getItems().size();
         if (oldSize > 0) {
             getItems().clear();
-            getAdapter().notifyItemRangeRemoved(0, oldSize);
+            RecyclerView.Adapter adapter = getAdapter();
+            if (adapter != null) {
+                adapter.notifyItemRangeRemoved(0, oldSize);
+            }
         }
     }
 
@@ -72,8 +75,10 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
         Call<ResponseBody> call = newCall(page + 1);
 
         if (call == null) {
+            setEnd(true);
             setLoading(false);
             stopRefreshing();
+            onExceptionCaught(new Exception("search not available"));
             return;
         }
         call.enqueue(new Callback<ResponseBody>() {
@@ -83,6 +88,7 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
                     try {
                         if (!response.isSuccessful() || response.body() == null) {
                             setEnd(true);
+                            onExceptionCaught(new Exception("empty search response"));
                         } else {
                             onResult(response.body());
                             currentPage++;
@@ -126,6 +132,9 @@ public abstract class BasicOnScrollListener<I> extends RecyclerView.OnScrollList
 
     public boolean canLoadMore(RecyclerView recyclerView) {
         RecyclerView.LayoutManager mLayoutManager = getLayoutManager();
+        if (mLayoutManager == null) {
+            return false;
+        }
         int visibleItemCount = recyclerView.getChildCount();
         int totalItemCount = mLayoutManager.getItemCount();
         int firstVisibleItem = 0;

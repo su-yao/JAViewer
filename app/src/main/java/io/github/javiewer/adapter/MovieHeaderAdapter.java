@@ -7,14 +7,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.os.Bundle;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.res.ResourcesCompat;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
@@ -53,18 +57,33 @@ public class MovieHeaderAdapter extends RecyclerView.Adapter<MovieHeaderAdapter.
     public void onBindViewHolder(final ViewHolder holder, int position) {
         final MovieDetail.Header header = headers.get(position);
         holder.itemView.setOnLongClickListener(null);
+        holder.itemView.setOnTouchListener(null);
+        holder.mHeaderName.setOnLongClickListener(null);
+        holder.mHeaderName.setOnTouchListener(null);
+        holder.mHeaderValue.setOnLongClickListener(null);
+        holder.mHeaderValue.setOnTouchListener(null);
         holder.mHeaderValue.setOnClickListener(null);
+        holder.mHeaderValue.setClickable(false);
         holder.mHeaderValue.setPaintFlags(holder.mHeaderValue.getPaintFlags() & (~Paint.UNDERLINE_TEXT_FLAG));
         holder.mHeaderValue.setTextColor(holder.defaultValueColor);
 
         if (header.name != null && header.value != null) {
-            holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+            View.OnLongClickListener copyListener = new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
                     copyHeader(header);
                     return true;
                 }
-            });
+            };
+            View.OnTouchListener keepPress = new KeepLongPressTouchListener();
+            holder.itemView.setOnLongClickListener(copyListener);
+            holder.mHeaderName.setLongClickable(true);
+            holder.mHeaderValue.setLongClickable(true);
+            holder.mHeaderName.setOnLongClickListener(copyListener);
+            holder.mHeaderValue.setOnLongClickListener(copyListener);
+            holder.itemView.setOnTouchListener(keepPress);
+            holder.mHeaderName.setOnTouchListener(keepPress);
+            holder.mHeaderValue.setOnTouchListener(keepPress);
 
             holder.mHeaderName.setText(header.name);
             holder.mHeaderValue.setText(header.value);
@@ -98,11 +117,51 @@ public class MovieHeaderAdapter extends RecyclerView.Adapter<MovieHeaderAdapter.
     }
 
     private void copyHeader(MovieDetail.Header header) {
+        String value = header.value == null ? "" : header.value;
         ClipboardManager clip = (ClipboardManager) mParentActivity.getSystemService(Context.CLIPBOARD_SERVICE);
         if (clip != null) {
-            clip.setPrimaryClip(ClipData.newPlainText(header.name, header.value));
+            clip.setPrimaryClip(ClipData.newPlainText(header.name, value));
         }
-        Toast.makeText(mParentActivity, "已复制到剪贴板", Toast.LENGTH_SHORT).show();
+        Toast.makeText(mParentActivity, "已复制" + (header.name == null ? "" : header.name), Toast.LENGTH_SHORT).show();
+    }
+
+    private static class KeepLongPressTouchListener implements View.OnTouchListener {
+        private float downX;
+        private float downY;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    downX = event.getX();
+                    downY = event.getY();
+                    requestDisallowIntercept(v, true);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    float dy = Math.abs(event.getY() - downY);
+                    float dx = Math.abs(event.getX() - downX);
+                    int slop = ViewConfiguration.get(v.getContext()).getScaledTouchSlop();
+                    if (dy > slop && dy > dx) {
+                        requestDisallowIntercept(v, false);
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    requestDisallowIntercept(v, false);
+                    break;
+                default:
+                    break;
+            }
+            return false;
+        }
+
+        private static void requestDisallowIntercept(View v, boolean disallow) {
+            ViewParent parent = v.getParent();
+            while (parent != null) {
+                parent.requestDisallowInterceptTouchEvent(disallow);
+                parent = parent.getParent();
+            }
+        }
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {

@@ -12,6 +12,13 @@ public class AvgleSearchResult {
     public boolean success;
     public Response response;
 
+    public Response.Video firstVideo() {
+        if (!success || response == null || response.videos == null || response.videos.isEmpty()) {
+            return null;
+        }
+        return response.videos.get(0);
+    }
+
     public static class Response {
 
         public boolean has_more;

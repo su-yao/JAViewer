@@ -19,7 +19,7 @@ public class MovieListFragment extends MovieFragment {
         super.onCreate(savedInstanceState);
 
         Bundle bundle = getArguments();
-        this.link = bundle.getString("link");
+        this.link = bundle == null ? null : bundle.getString("link");
     }
 
     @Override

@@ -2,8 +2,6 @@ package io.github.javiewer;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Environment;
 import androidx.fragment.app.Fragment;
 
@@ -20,6 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLException;
 
 import cn.jzvd.JZVideoPlayer;
 import io.github.javiewer.adapter.item.DataSource;
@@ -46,7 +47,7 @@ import retrofit2.Retrofit;
 
 public class JAViewer extends Application {
 
-    public static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5 Build/LMY48B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/43.0.2357.65 Mobile Safari/537.36";
+    public static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36";
     public static final List<DataSource> DATA_SOURCES = new ArrayList<>();
     public static final Map<Integer, Class<? extends Fragment>> FRAGMENTS = new HashMap<Integer, Class<? extends Fragment>>() {{
         put(R.id.nav_home, HomeFragment.class);
@@ -78,7 +79,15 @@ public class JAViewer extends Application {
             }
             Request request = builder.build();
 
-            return chain.proceed(request);
+            try {
+                return chain.proceed(request);
+            } catch (SSLException e) {
+                HttpUrl retryUrl = url.newBuilder().scheme("http").build();
+                if ("https".equals(url.scheme()) && isAvmooFamily(retryUrl.host()) && !retryUrl.equals(url)) {
+                    return chain.proceed(request.newBuilder().url(retryUrl).build());
+                }
+                throw e;
+            }
         }
     })
             .cookieJar(new CookieJar() {
@@ -95,6 +104,9 @@ public class JAViewer extends Application {
                     return cookies != null ? cookies : new ArrayList<Cookie>();
                 }
             })
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
             .build();
 
     static {
@@ -124,10 +136,19 @@ public class JAViewer extends Application {
         String host = url.url().getHost();
         if (hostReplacements.containsKey(host)) {
             builder.host(hostReplacements.get(host));
-            return builder.build();
+            host = hostReplacements.get(host);
         }
+        if (isAvmooFamily(host) && "https".equals(url.scheme())) {
+            builder.scheme("http");
+        }
+        return builder.build();
+    }
 
-        return url;
+    private static boolean isAvmooFamily(String host) {
+        if (host == null) {
+            return false;
+        }
+        return host.contains("avmoo") || host.contains("avsox") || host.contains("avheat") || host.contains("tellme.pw");
     }
 
     public static <T> T parseJson(Class<T> beanClass, JsonReader reader) throws JsonParseException {
@@ -159,10 +180,7 @@ public class JAViewer extends Application {
     }
 
     public static void a(Context context) {
-        String url = "https://qr.alipay.com/a6x05027ymf6n8kl0qkoa54";
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        context.startActivity(intent);
+        io.github.javiewer.util.Intents.openUri(context, "https://qr.alipay.com/a6x05027ymf6n8kl0qkoa54");
     }
 
     public static String b(String s1, String s2) {

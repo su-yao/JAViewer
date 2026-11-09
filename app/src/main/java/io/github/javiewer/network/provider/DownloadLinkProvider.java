@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.javiewer.adapter.item.DownloadLink;
 import io.github.javiewer.adapter.item.MagnetLink;
+import io.github.javiewer.network.BtSearchSite;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 
@@ -12,14 +13,21 @@ import retrofit2.Call;
  */
 public abstract class DownloadLinkProvider {
     public static DownloadLinkProvider getProvider(String name) {
-        switch (name.toLowerCase().trim()) {
-            case "btso":
-                return new BTSOLinkProvider();
-            case "torrentkitty":
-                return new TorrentKittyLinkProvider();
-            default:
-                return null;
+        if (name == null) {
+            return null;
         }
+        String key = name.toLowerCase().trim();
+        BtSearchSite site = BtSearchSite.find(key);
+        if (site != null) {
+            return new BtSearchLinkProvider(site);
+        }
+        if ("btso".equals(key)) {
+            return new BTSOLinkProvider();
+        }
+        if ("torrentkitty".equals(key)) {
+            return new BtSearchLinkProvider(BtSearchSite.TORRENTKITTY);
+        }
+        return null;
     }
 
     public abstract Call<ResponseBody> search(String keyword, int page);

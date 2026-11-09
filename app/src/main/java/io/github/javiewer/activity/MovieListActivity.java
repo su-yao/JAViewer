@@ -28,6 +28,10 @@ public class MovieListActivity extends SecureActivity {
         setContentView(R.layout.activity_movie_list);
 
         Bundle bundle = this.getIntent().getExtras();
+        if (bundle == null) {
+            finish();
+            return;
+        }
 
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         getSupportActionBar().setTitle(bundle.getString("title"));

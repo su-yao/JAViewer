@@ -71,7 +71,15 @@ public class WebViewActivity extends SecureActivity {
         ButterKnife.bind(this);
 
         Bundle bundle = this.getIntent().getExtras();
+        if (bundle == null) {
+            finish();
+            return;
+        }
         embeddedUrl = bundle.getString("embedded_url");
+        if (embeddedUrl == null || embeddedUrl.trim().isEmpty()) {
+            finish();
+            return;
+        }
 
 
         Toolbar toolbar = findViewById(R.id.toolbar);
